@@ -1,68 +1,47 @@
 import folium
+import folium.plugins
+import numpy as np
+from datetime import datetime, timedelta
 import webbrowser
 import os
-from folium.plugins import HeatMap
-from folium.plugins import LayerControl
 
-MAP_PATH = "us_satellite_map.html"
-BORDERS_PATH = "data/us-states.json"
+# Data
+np.random.seed(3141592)
+initial_data = np.random.normal(size=(100, 2)) * np.array([[1, 1]]) + np.array(
+    [[48, 5]]
+)
 
-def generate_map():
-    us_center = [39.8283, -98.5795]
-    bounds = [[24.396308, -125.0], [49.384358, -66.93457]]
+move_data = np.random.normal(size=(100, 2)) * 0.01
 
-    m = folium.Map(
-        location=us_center,
-        zoom_start=4,
-        tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        attr="Esri",
-        maxBounds=bounds,
-        maxZoom=10,
-        minZoom=3,
-        maxBoundsViscosity=0.0
-    )
+data = [(initial_data + move_data * i).tolist() for i in range(100)]
 
-    with open(BORDERS_PATH, 'r') as f:
-        state_borders = f.read()
-    folium.GeoJson(
-        state_borders,
-        name="State Borders",
-        style_function=lambda x: {'fillColor': 'transparent', 'color': 'white', 'weight': 1, 'opacity': 0.3}
-    ).add_to(m)
+# Weights
+time_ = 0
+N = len(data)
+itensify_factor = 30
+for time_entry in data:
+    time_ = time_+1
+    for row in time_entry:
+        weight = min(np.random.uniform()*(time_/(N))*itensify_factor, 1)
+        row.append(weight)
 
-    folium.Marker(
-        location=[40.71088124, -73.81684712],
-        popup="Test Marker",
-        icon=folium.Icon(color="red")
-    ).add_to(m)
+# Time Index
+time_index = [
+    (datetime.now() + k * timedelta(1)).strftime("%Y-%m-%d") for k in range(len(data))
+]
 
-    heatmap_data = [
-        [[40.71, -73.81, 100], [34.05, -118.24, 70]],
-        [[40.71, -73.81, 100], [34.05, -118.24, 70], [38.90, -77.03, 50]],
-        [[40.71, -73.81, 100], [34.05, -118.24, 70], [38.90, -77.03, 50], [42.36, -71.05, 80]]
-    ]
-    time_indices = ["2020-01-01", "2020-01-02", "2020-01-03"]
+# Map
+m = folium.Map([48.0, 5.0], zoom_start=6)
 
-    for i, frame in enumerate(heatmap_data):
-        HeatMap(
-            data=frame,
-            name=time_indices[i],
-            radius=15,
-            blur=10,
-            gradient={'0.4': 'blue', '0.65': 'yellow', '1': 'red'}
-        ).add_to(m)
+hm = folium.plugins.HeatMapWithTime(data, index=time_index, auto_play=True, max_opacity=0.3)
 
-    LayerControl().add_to(m)
+hm.add_to(m)
 
-    m.save(MAP_PATH)
+# Save the map to an HTML file
+temp_file_path = "heatmap_with_time.html"
+m.save(temp_file_path)
 
-def open_map():
-    html_path = os.path.abspath(MAP_PATH)
-    webbrowser.get("chrome").open(f"file://{html_path}")
-
-def main():
-    generate_map()
-    open_map()
-
-if __name__ == "__main__":
-    main()
+# Open the HTML file in Safari
+safari_path = "open -a Safari"  # Command to open with Safari on macOS
+full_command = f"{safari_path} {temp_file_path}"
+os.system(full_command)
