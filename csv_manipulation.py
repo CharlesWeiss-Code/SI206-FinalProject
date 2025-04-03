@@ -52,10 +52,10 @@ def get_time_series_dict(data, skip_value=1):
 
 
 
-def main():
-    csv_data = read_csv(CSV_PATH)
-    time_series_dict = get_time_series_dict(csv_data, 100)
-    print(time_series_dict)
+# def main():
+#     csv_data = read_csv(CSV_PATH)
+#     time_series_dict = get_time_series_dict(csv_data, 100)
+#     print(time_series_dict)
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
