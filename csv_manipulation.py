@@ -1,6 +1,5 @@
 import os
 import csv
-import re
 
 # Get the absolute path of the project root (where the script is located)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -12,7 +11,7 @@ def read_csv(path=CSV_PATH):
     try:
         with open(path, 'r') as f:
             reader = csv.reader(f)
-            next(reader)
+            next(reader)  # Skip header
             return list(reader)
     except FileNotFoundError:
         print(f"Error: The file at {path} does not exist.")
@@ -21,76 +20,29 @@ def read_csv(path=CSV_PATH):
         print(f"An error occurred: {e}")
         return []
 
-def get_time_series_dict(data, skip_value=1):
+def get_time_series_dict(data, skip_value=1, threshold=3):
     """
-    Converts a list of lists representing CSV time series data into a dictionary.
+    Converts a list of lists representing CSV time series data into a list of daily new cases.
     
     Args:
-        data (list of list): The input data from the CSV file, where each inner list
-        represents a row with the first element being a key and the remaining elements
-        being the associated time series values.
-        skip_value (int, optional): The number of elements to skip between each time series value.
-        Defaults to 1.
+        data (list of lists): The input data from the CSV file.
+        skip_value (int, optional): The number of days to skip between each time step. Defaults to 1.
+        threshold (int, optional): Minimum number of new cases to consider a location as having new cases.
+                                   Smaller changes are set to 0. Defaults to 3.
     
     Returns:
-        list: triple nested array of time series data. If there was data for three dates it would look like so.
-        index like res[date][location_idx] = [lat,lon,intensity]
-        [
-        [[lat,lon,intensity],[lat,lon,intensity]],
-        [[lat,lon,intensity],[lat,lon,intensity]],
-        [[lat,lon,intensity],[lat,lon,intensity]]
-        ]
+        list: Triple nested array of time series data, where each entry is [lat, lon, intensity],
+              and intensity represents daily new cases.
+              Format: res[date][location_idx] = [lat, lon, intensity]
     """
     res = []
-    for col in range(12, len(data[0]), skip_value):
-        #can skip through dates
+    for col in range(11, len(data[0]), skip_value):
         day = []
         for row in range(1, len(data)):
-            if col == 12:
-                intensity = 0
-            else:
-                intensity = int(data[row][col]) - int(data[row][col-1])
+            current_cases = int(data[row][col])
+            intensity = max(0, current_cases)
             lat = float(data[row][8])
             lon = float(data[row][9])
-            day.append([lat,lon,intensity])
-        
+            day.append([lat, lon, intensity])
         res.append(day)
-
-
-    # res = {}
     return res
-
-    # print(data)
-    # for row in data:
-
-    #     if len(row) < 11:
-    #             continue  # Skip rows that don't have enough columns
-
-    #         # Extract the relevant columns
-    #     lat = float(row[8])
-    #     lon = float(row[9])
-            
-    #     # Check if the values are valid (non-empty)
-    #     if not lat or not lon:
-    #         continue  # Skip rows with missing values in important columns
-    #     current_list = []
-    #     # print(row)
-    #     for i in range(12, len(row), skip_value):
-    #         value = int(row[i]) - int(row[i-1])
-    #         value = 0 if value < 0 else value
-    #         current_list.append(value)
-        
-    #     res[(row[10], lat, lon)] = current_list
-        
-    # return res
-
-
-
-
-def main():
-    csv_data = read_csv(CSV_PATH)
-    time_series_dict = get_time_series_dict(csv_data, 100)
-    print(time_series_dict)
-
-if __name__ == "__main__":
-    main()

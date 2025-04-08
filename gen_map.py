@@ -5,9 +5,10 @@ import csv_manipulation
 import os
 import json
 import math
+import csv
 
-skip_value = 20
-
+skip_value = 1
+threshold = 0.1
 data = csv_manipulation.get_time_series_dict(csv_manipulation.read_csv(), skip_value=skip_value)
 
 clipped_data = [
@@ -33,12 +34,31 @@ normalized_data = [
     for time_step in transformed_data
 ]
 
+curated_data = [
+    [[point[0], point[1], point[2] if point[2] > threshold else 0] for point in time_step]
+    for time_step in normalized_data
+]
+
+with open('normalized_data.csv', 'w') as f:
+    writer = csv.writer(f)
+    writer.writerows(normalized_data)
+
+for day in range (len(curated_data)):
+    b = False
+    for point in curated_data[day]:
+        if point[2] != 0:
+            print(point, day)
+            b = True
+            break
+    if b:
+        break
+
 # print(normalized_data)
 
 start_date = datetime(year=2020,month=1,day=22)
 
 time_index = [
-    (start_date + k * timedelta(1)*skip_value).strftime("%Y-%m-%d") for k in range(len(normalized_data))
+    (start_date + k * timedelta(1)*skip_value).strftime("%Y-%m-%d") for k in range(len(curated_data))
 ]
 # m = folium.Map([39.8333, -98.5833], zoom_start=4,max_zoom=6,min_zoom=4)
 m = folium.Map([39.8333, -98.5833], zoom_start=4, max_zoom = 10, min_zoom = 4)
@@ -53,7 +73,7 @@ gradient = {
     "1.0": "red"
 }
 
-hm = folium.plugins.HeatMapWithTime(normalized_data,
+hm = folium.plugins.HeatMapWithTime(curated_data,
     index=time_index,
     auto_play=True,
     max_opacity=0.8,  
@@ -105,3 +125,6 @@ m.save(temp_file_path)
 safari_path = "open -a Safari"  # Command to open with Safari on macOS
 full_command = f"{safari_path} {temp_file_path}"
 os.system(full_command)
+
+
+
