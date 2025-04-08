@@ -10,7 +10,7 @@ skip_value = 20
 
 data = csv_manipulation.get_time_series_dict(csv_manipulation.read_csv(), skip_value=skip_value)
 
-sigmoid_intensities = [1 / (1 + math.exp(-i)) for i in intensities]
+sigmoid_intensities = [1 / (1 + math.exp(-i)) for i in data]
 
 # print(data)
 

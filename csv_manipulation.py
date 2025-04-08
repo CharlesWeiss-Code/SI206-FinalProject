@@ -46,7 +46,10 @@ def get_time_series_dict(data, skip_value=1):
         #can skip through dates
         day = []
         for row in range(1, len(data)):
-            intensity = int(data[row][col]) - int(data[row][col-1])
+            if col == 12:
+                intensity = 0
+            else:
+                intensity = int(data[row][col]) - int(data[row][col-1])
             lat = float(data[row][8])
             lon = float(data[row][9])
             day.append([lat,lon,intensity])
