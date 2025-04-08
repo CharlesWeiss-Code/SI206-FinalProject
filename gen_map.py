@@ -1,56 +1,107 @@
-from csv_manipulation import *
 import folium
-import webbrowser
+import folium.plugins
+from datetime import datetime, timedelta
+import csv_manipulation
 import os
+import json
+import math
 
-MAP_PATH = "us_satellite_map.html"
-BORDERS_PATH = "data/us-states.json"
+skip_value = 20
+
+data = csv_manipulation.get_time_series_dict(csv_manipulation.read_csv(), skip_value=skip_value)
+
+clipped_data = [
+    [[point[0], point[1], max(0, point[2])] for point in time_step]
+    for time_step in data
+]
+
+# Step 2: logarithmic transformation (ideally will bring out large changes in data)
+transformed_data = [
+    [[point[0], point[1], math.log1p(point[2])] for point in time_step]
+    for time_step in clipped_data
+]
+
+# Step 3: Global Max
+global_max_transformed = max(
+    max(point[2] for point in time_step) 
+    for time_step in transformed_data if any(point[2] > 0 for point in time_step)
+) or 1  # Avoid division by zero
+
+# Step 4: Normalization
+normalized_data = [
+    [[point[0], point[1], point[2] / global_max_transformed] for point in time_step]
+    for time_step in transformed_data
+]
+
+# print(normalized_data)
+
+start_date = datetime(year=2020,month=1,day=22)
+
+time_index = [
+    (start_date + k * timedelta(1)*skip_value).strftime("%Y-%m-%d") for k in range(len(normalized_data))
+]
+# m = folium.Map([39.8333, -98.5833], zoom_start=4,max_zoom=6,min_zoom=4)
+m = folium.Map([39.8333, -98.5833], zoom_start=4, max_zoom = 10, min_zoom = 4)
 
 
-def generate_map():
-    us_center = [39.8283, -98.5795]  # Approximate center of the contiguous US
+gradient = {
+    "0.0": "transparent",  # No color for zero
+    "0.1": "blue",
+    "0.3": "cyan",
+    "0.5": "lime",
+    "0.7": "yellow",
+    "1.0": "red"
+}
 
-    # Define the bounds to limit the zoom to US and Canada
-    bounds = [[24.396308, -125.0], [49.384358, -66.93457]]  # Southwest and Northeast corners for US
+hm = folium.plugins.HeatMapWithTime(normalized_data,
+    index=time_index,
+    auto_play=True,
+    max_opacity=0.8,  
+    gradient=gradient,  
+    radius=15,
+    overlay=True,
+    # scale_radius=True,
+    name="Covid-19 Heatmap")
 
-    # Create a map with satellite tiles
-    m = folium.Map(
-        location=us_center,
-        zoom_start=4,
-        tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        attr="Esri",
-        maxBounds=bounds,  # Restrict panning within these bounds
-        maxZoom=10,  # Limit the maximum zoom level
-        minZoom=3,  # Allow more zoom-out level for a broader view
-        maxBoundsViscosity=0.0
-    )
+folium.TileLayer(
+    tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attr='Esri',
+    name='Esri Satellite',
+    overlay=False,
+    control=True
+).add_to(m)
 
-    # Load state borders from the local file you downloaded
-    with open(BORDERS_PATH, 'r') as f:
-        state_borders = f.read()
+geojson_path = "./data/us-states.json" 
+with open(geojson_path, 'r') as f:
+    state_borders = json.load(f)
 
-    # Add the GeoJSON for state borders
-    folium.GeoJson(
-        state_borders,
-        name="State Borders",
-        style_function=lambda x: {
-            'fillColor': 'transparent',
-            'color': 'white',
-            'weight': 1,
-            'opacity':0.3
-        }
-    ).add_to(m)
+# Add the state borders to the map
+folium.GeoJson(
+    state_borders,
+    name="State Borders",
+    style_function=lambda x: {
+        "color": "white",  
+        "weight": 1,  
+        "opacity": 0.5,  
+        "fillOpacity": 0 
+    },
+).add_to(m)
 
-    # Save the map to an HTML file
-    m.save(MAP_PATH)
+hm.add_to(m)
 
-def open_map():
-    html_path = os.path.abspath(MAP_PATH)
-    webbrowser.get("safari").open(f"file://{html_path}")
+title_html = '''
+    <div style="position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 9999; 
+                background-color: rgba(255, 255, 255, 0.5); padding: 5px 10px; border-radius: 5px;">
+        <h3 style="margin: 0; font-size: 20px;"><b>COVID-19 Confirmed Cases Heatmap (2020)</b></h3>
+    </div>
+'''
+m.get_root().html.add_child(folium.Element(title_html))
 
-def main():
-    generate_map()
-    open_map()
+# Save the map to an HTML file
+temp_file_path = "heatmap_with_time.html"
+m.save(temp_file_path)
 
-if __name__ == "__main__":
-    main()
+# Open the HTML file in Safari
+safari_path = "open -a Safari"  # Command to open with Safari on macOS
+full_command = f"{safari_path} {temp_file_path}"
+os.system(full_command)

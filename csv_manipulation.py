@@ -8,7 +8,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # Define the relative path to the csv
 CSV_PATH = os.path.join(BASE_DIR, 'data', 'time_series_covid19_confirmed_US.csv')
 
-def read_csv(path):
+def read_csv(path=CSV_PATH):
     try:
         with open(path, 'r') as f:
             reader = csv.reader(f)
@@ -33,29 +33,64 @@ def get_time_series_dict(data, skip_value=1):
         Defaults to 1.
     
     Returns:
-        dict: A dictionary where keys are a touple of (Combined_Key, lat, lon) 
-        and values is a list of the difference between time series data
+        list: triple nested array of time series data. If there was data for three dates it would look like so.
+        index like res[date][location_idx] = [lat,lon,intensity]
+        [
+        [[lat,lon,intensity],[lat,lon,intensity]],
+        [[lat,lon,intensity],[lat,lon,intensity]],
+        [[lat,lon,intensity],[lat,lon,intensity]]
+        ]
     """
+    res = []
+    for col in range(12, len(data[0]), skip_value):
+        #can skip through dates
+        day = []
+        for row in range(1, len(data)):
+            if col == 12:
+                intensity = 0
+            else:
+                intensity = int(data[row][col]) - int(data[row][col-1])
+            lat = float(data[row][8])
+            lon = float(data[row][9])
+            day.append([lat,lon,intensity])
+        
+        res.append(day)
 
-    res = {}
-    for row in data:
-        current_list = []
-        # print(row)
-        for i in range(12, len(row), skip_value):
-            value = int(row[i]) - int(row[i-1])
-            value = 0 if value < 0 else value
-            current_list.append(value)
-        
-        res[(row[10], row[8], row[9])] = current_list
-        
+
+    # res = {}
     return res
 
+    # print(data)
+    # for row in data:
+
+    #     if len(row) < 11:
+    #             continue  # Skip rows that don't have enough columns
+
+    #         # Extract the relevant columns
+    #     lat = float(row[8])
+    #     lon = float(row[9])
+            
+    #     # Check if the values are valid (non-empty)
+    #     if not lat or not lon:
+    #         continue  # Skip rows with missing values in important columns
+    #     current_list = []
+    #     # print(row)
+    #     for i in range(12, len(row), skip_value):
+    #         value = int(row[i]) - int(row[i-1])
+    #         value = 0 if value < 0 else value
+    #         current_list.append(value)
+        
+    #     res[(row[10], lat, lon)] = current_list
+        
+    # return res
 
 
-# def main():
-#     csv_data = read_csv(CSV_PATH)
-#     time_series_dict = get_time_series_dict(csv_data, 100)
-#     print(time_series_dict)
 
-# if __name__ == "__main__":
-#     main()
+
+def main():
+    csv_data = read_csv(CSV_PATH)
+    time_series_dict = get_time_series_dict(csv_data, 100)
+    print(time_series_dict)
+
+if __name__ == "__main__":
+    main()
