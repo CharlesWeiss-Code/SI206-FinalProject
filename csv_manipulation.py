@@ -33,34 +33,53 @@ def get_time_series_dict(data, skip_value=1):
         Defaults to 1.
     
     Returns:
-        dict: A dictionary where keys are a touple of (Combined_Key, lat, lon) 
-        and values is a list of the difference between time series data
+        list: triple nested array of time series data. If there was data for three dates it would look like so.
+        index like res[date][location_idx] = [lat,lon,intensity]
+        [
+        [[lat,lon,intensity],[lat,lon,intensity]],
+        [[lat,lon,intensity],[lat,lon,intensity]],
+        [[lat,lon,intensity],[lat,lon,intensity]]
+        ]
     """
-
-    res = {}
-    for row in data:
-
-        if len(row) < 11:
-                continue  # Skip rows that don't have enough columns
-
-            # Extract the relevant columns
-        combined_key = row[10]
-        lat = float(row[8])
-        lon = float(row[9])
-            
-        # Check if the values are valid (non-empty)
-        if not combined_key or not lat or not lon:
-            continue  # Skip rows with missing values in important columns
-        current_list = []
-        # print(row)
-        for i in range(12, len(row), skip_value):
-            value = int(row[i]) - int(row[i-1])
-            value = 0 if value < 0 else value
-            current_list.append(value)
+    res = []
+    for col in range(12, len(data[0]), skip_value):
+        #can skip through dates
+        day = []
+        for row in range(1, len(data)):
+            intensity = int(data[row][col]) - int(data[row][col-1])
+            lat = float(data[row][8])
+            lon = float(data[row][9])
+            day.append([lat,lon,intensity])
         
-        res[(row[10], lat, lon)] = current_list
-        
+        res.append(day)
+
+
+    # res = {}
     return res
+
+    # print(data)
+    # for row in data:
+
+    #     if len(row) < 11:
+    #             continue  # Skip rows that don't have enough columns
+
+    #         # Extract the relevant columns
+    #     lat = float(row[8])
+    #     lon = float(row[9])
+            
+    #     # Check if the values are valid (non-empty)
+    #     if not lat or not lon:
+    #         continue  # Skip rows with missing values in important columns
+    #     current_list = []
+    #     # print(row)
+    #     for i in range(12, len(row), skip_value):
+    #         value = int(row[i]) - int(row[i-1])
+    #         value = 0 if value < 0 else value
+    #         current_list.append(value)
+        
+    #     res[(row[10], lat, lon)] = current_list
+        
+    # return res
 
 
 

@@ -1,39 +1,21 @@
 import folium
 import folium.plugins
-import numpy as np
 from datetime import datetime, timedelta
-import webbrowser
+import csv_manipulation
 import os
 
-# Data
-np.random.seed(3141592)
-initial_data = np.random.normal(size=(100, 2)) * np.array([[1, 1]]) + np.array(
-    [[48, 5]]
-)
+data = csv_manipulation.get_time_series_dict(csv_manipulation.read_csv(), skip_value=100)
 
-move_data = np.random.normal(size=(100, 2)) * 0.01
+# print(data)
 
-data = [(initial_data + move_data * i).tolist() for i in range(100)]
+start_date = datetime(year=2020,month=1,day=22)
 
-# Weights
-time_ = 0
-N = len(data)
-itensify_factor = 30
-for time_entry in data:
-    time_ = time_+1
-    for row in time_entry:
-        weight = min(np.random.uniform()*(time_/(N))*itensify_factor, 1)
-        row.append(weight)
-
-# Time Index
 time_index = [
-    (datetime.now() + k * timedelta(1)).strftime("%Y-%m-%d") for k in range(len(data))
+    (start_date + k * timedelta(1)).strftime("%Y-%m-%d") for k in range(len(data))
 ]
+m = folium.Map([44.9672,-98.50], zoom_start=6)
 
-# Map
-m = folium.Map([48.0, 5.0], zoom_start=6)
-
-hm = folium.plugins.HeatMapWithTime(data, index=time_index, auto_play=True, max_opacity=0.3)
+hm = folium.plugins.HeatMapWithTime(data,index=time_index,auto_play=True,max_opacity=0.3)
 
 hm.add_to(m)
 
