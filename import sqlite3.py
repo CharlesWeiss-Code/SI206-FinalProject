@@ -6,7 +6,7 @@ conn = sqlite3.connect('covid_data.db')
 cur = conn.cursor()
 
 def create_tables():
-    cur.execute('''
+    cur.execute("""
     CREATE TABLE IF NOT EXISTS Region (
         UID INTEGER PRIMARY KEY,
         iso2 TEXT,
@@ -20,9 +20,9 @@ def create_tables():
         Long_ REAL,
         Combined_Key TEXT
     );
-    ''')
+    """)
 
-    cur.execute('''
+    cur.execute("""
     CREATE TABLE IF NOT EXISTS CaseData (
         RecordID INTEGER PRIMARY KEY AUTOINCREMENT,
         UID INTEGER,
@@ -30,7 +30,7 @@ def create_tables():
         Cases INTEGER,
         FOREIGN KEY (UID) REFERENCES Region (UID)
     );
-    ''')
+    """)
 
 create_tables()
 
@@ -54,23 +54,23 @@ def fetch_and_store_data(api_url, start=0, batch_size=25):
         Combined_Key = entry['Combined_Key']
 
         #putting this into a region tables
-        cur.execute('''
+        cur.execute("""
         INSERT OR IGNORE INTO Region (
             UID, iso2, iso3, code3, FIPS, Admin2, Province_State, 
             Country_Region, Lat, Long_, Combined_Key
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (UID, iso2, iso3, code3, FIPS, Admin2, Province_State, Country_Region, Lat, Long_, Combined_Key))
+        """, (UID, iso2, iso3, code3, FIPS, Admin2, Province_State, Country_Region, Lat, Long_, Combined_Key))
 
         #making this to store the dates data
         time_series = entry['time_series']
         for date_str, cases in time_series.items():
             date = datetime.strptime(date_str, "%Y-%m-%d").date()
-            cur.execute('''
+            cur.execute("""
             INSERT INTO CaseData (UID, Date, Cases) VALUES (?, ?, ?)
-            ''', (UID, date, cases))
+            """, (UID, date, cases))
 
-#PUT THE API LINK HERE
-api_url = 'https://api.example.com/data'
+#PUT THE API LINK HERE!
+api_url = '' 
 fetch_and_store_data(api_url)
 
 conn.commit()
